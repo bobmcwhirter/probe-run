@@ -20,7 +20,7 @@ difference = "2.0"
 either = "1.6"
 gimli = "0.24"
 git-version = "0.3"
-hidapi = "1.2"
+hidapi = { version = "1.2", default-features = false }
 log = "0.4"
 object = "0.24"
 probe-rs = "0.11"
@@ -39,13 +39,9 @@ nix = "0.22.1"
 serial_test = "0.5.1"
 
 [patch.crates-io]
-probe-rs = { git = "https://github.com/rp-rs/probe-rs" }
+probe-rs = { git = "https://github.com/probe-rs/probe-rs" }
 probe-rs-rtt = { git = "https://github.com/probe-rs/probe-rs-rtt" }
 #probe-rs = { path = "../probe-rs/probe-rs" }
 #defmt-decoder = { path = "../defmt/decoder" }
 #defmt-elf2table = { path = "../defmt/elf2table" }
 #defmt-logger = { path = "../defmt/logger" }
-
-[patch."https://github.com/probe-rs/probe-rs"]
-probe-rs = { git = "https://github.com/rp-rs/probe-rs" }
-#probe-rs = { path = "../probe-rs/probe-rs" }
