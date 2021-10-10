@@ -20,6 +20,10 @@ remote device.
 
 To install `probe-run`, use `cargo install probe-run`.
 
+```
+$ cargo install probe-run-rp --git https://github.com/rp-rs/probe-run
+```
+
 On Linux, you might have to install `libudev` and `libusb` from your package
 manager before installing `probe-run`.
 
