@@ -94,15 +94,15 @@ fn run_target_program(elf_path: &Path, chip_name: &str, opts: &cli::Opts) -> any
     }
     start_program(&mut sess, elf)?;
 
-    let sess = Arc::new(Mutex::new(sess));
+    let mut sess = Arc::new(Mutex::new(sess));
     let current_dir = &env::current_dir()?;
 
-    let halted_due_to_signal = extract_and_print_logs(elf, &sess, opts, current_dir)?;
-
-    print_separator();
+    let halted_due_to_signal = extract_and_print_logs(elf, &mut sess, opts, current_dir)?;
 
     let mut sess = sess.lock().unwrap();
     let mut core = sess.core(0)?;
+
+    print_separator();
 
     let canary_touched = canary
         .map(|canary| canary.touched(&mut core, elf))
@@ -229,7 +229,7 @@ fn extract_and_print_logs(
     let mut was_halted = false;
     while !exit.load(Ordering::Relaxed) {
         if let Some(logging_channel) = &mut logging_channel {
-            let num_bytes_read = match logging_channel.read(&mut read_buf) {
+            let num_bytes_read = match logging_channel.read(&mut sess.lock().unwrap().core(0).unwrap(), &mut read_buf) {
                 Ok(n) => n,
                 Err(e) => {
                     eprintln!("RTT error: {}", e);
@@ -351,7 +351,9 @@ fn setup_logging_channel(
 
     let scan_region = ScanRegion::Exact(rtt_buffer_address);
     for _ in 0..NUM_RETRIES {
-        match Rtt::attach_region(sess.clone(), &scan_region) {
+        let mut s = sess.lock().unwrap();
+        let memory_map = s.target().memory_map.clone();
+        match Rtt::attach_region(&mut s.core(0).unwrap(), memory_map.as_slice(), &scan_region) {
             Ok(mut rtt) => {
                 log::debug!("Successfully attached RTT");
 
@@ -370,7 +372,7 @@ fn setup_logging_channel(
             Err(e) => {
                 return Err(anyhow!(e));
             }
-        }
+        };
     }
 
     log::error!("Max number of RTT attach retries exceeded.");
