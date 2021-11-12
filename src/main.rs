@@ -235,8 +235,11 @@ fn extract_and_print_logs(
     let mut read_buf = [0; 1024];
     let mut was_halted = false;
     while !exit.load(Ordering::Relaxed) {
+        let mut sess = sess.lock().unwrap();
+        let mut core = sess.core(0)?;
+
         if let Some(logging_channel) = &mut logging_channel {
-            let num_bytes_read = match logging_channel.read(&mut read_buf) {
+            let num_bytes_read = match logging_channel.read(&mut core, &mut read_buf) {
                 Ok(n) => n,
                 Err(e) => {
                     eprintln!("RTT error: {}", e);
@@ -266,8 +269,6 @@ fn extract_and_print_logs(
             }
         }
 
-        let mut sess = sess.lock().unwrap();
-        let mut core = sess.core(0)?;
         let is_halted = core.core_halted()?;
 
         if is_halted && was_halted {
@@ -363,7 +364,10 @@ fn setup_logging_channel(
 
     let scan_region = ScanRegion::Exact(rtt_buffer_address);
     for _ in 0..NUM_RETRIES {
-        match Rtt::attach_region(sess.clone(), &scan_region) {
+        let mut s = sess.lock().unwrap();
+        let mm = s.target().memory_map.clone();
+        let mut core = s.core(0).unwrap();
+        match Rtt::attach_region(&mut core, &*mm, &scan_region) {
             Ok(mut rtt) => {
                 log::debug!("Successfully attached RTT");
 
